@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Calculator, Info, Fan } from 'lucide-react';
-import { SPFCalculator } from './components/SPFCalculator';
+import { SFPCalculator } from './components/SFPCalculator';
 import { InfoPanel } from './components/InfoPanel';
 
 function App() {
@@ -13,7 +13,7 @@ function App() {
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <Fan className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">SPF Calculator</h1>
+              <h1 className="text-2xl font-bold text-gray-900">SFP Calculator</h1>
             </div>
             <button
               onClick={() => setShowInfo(!showInfo)}
@@ -29,7 +29,7 @@ function App() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid md:grid-cols-2 gap-8">
           <div className="order-2 md:order-1">
-            <SPFCalculator />
+            <SFPCalculator />
           </div>
           <div className={`order-1 md:order-2 ${showInfo ? 'block' : 'hidden md:block'}`}>
             <InfoPanel />
@@ -40,7 +40,7 @@ function App() {
       <footer className="bg-white mt-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
           <p className="text-center text-gray-600">
-            © {new Date().getFullYear()} SPF Calculator - hbradroc@uwo.ca
+            © {new Date().getFullYear()} SFP Calculator - hbradroc@uwo.ca
           </p>
         </div>
       </footer>
