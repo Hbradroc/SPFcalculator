@@ -4,8 +4,8 @@ export interface PressureDropResult {
 }
 
 export interface CalculationResults {
-  spf: number;
-  spfImperial: number;
+  SFP: number;
+  SFPImperial: number;
   pressureDrop: PressureDropResult | null;
   efficiency: number | null;
   flow: {
@@ -35,18 +35,18 @@ export const convertToImperial = {
   pressure: (pa: number): number => pa * PA_TO_IN_WG
 };
 
-export const calculateSPF = (power: number, flow: number, isMetric: boolean): CalculationResults => {
+export const calculateSFP = (power: number, flow: number, isMetric: boolean): CalculationResults => {
   // Convert to metric if imperial values provided
   const powerMetric = isMetric ? power : convertToMetric.power(power);
   const flowMetric = isMetric ? flow : convertToMetric.flow(flow);
   
-  // Calculate SPF in both units
-  const spfMetric = parseFloat((powerMetric / flowMetric).toFixed(2));
-  const spfImperial = parseFloat((power / flow).toFixed(2));
+  // Calculate SFP in both units
+  const SFPMetric = parseFloat((powerMetric / flowMetric).toFixed(2));
+  const SFPImperial = parseFloat((power / flow).toFixed(2));
 
   return {
-    spf: spfMetric,
-    spfImperial,
+    SFP: SFPMetric,
+    SFPImperial,
     pressureDrop: null,
     efficiency: null,
     flow: {
