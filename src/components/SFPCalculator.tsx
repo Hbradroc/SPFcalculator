@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { Calculator, RefreshCw, Download } from 'lucide-react';
 import { InputField } from './InputField';
 import { ResultsPanel } from './ResultsPanel';
-import { calculateSPF, calculatePressureDrop, type CalculationResults } from '../utils/calculations';
+import { calculateSFP, calculatePressureDrop, type CalculationResults } from '../utils/calculations';
 import { generatePDF } from '../utils/pdfGenerator';
 
-export const SPFCalculator: React.FC = () => {
+export const SFPCalculator: React.FC = () => {
   const [isMetric, setIsMetric] = useState(true);
   const [fanPower, setFanPower] = useState('');
   const [airflow, setAirflow] = useState('');
@@ -18,7 +18,7 @@ export const SPFCalculator: React.FC = () => {
     const pressure = parseFloat(pressureDrop);
     
     if (power && flow && power > 0 && flow > 0) {
-      const results = calculateSPF(power, flow, isMetric);
+      const results = calculateSFP(power, flow, isMetric);
       
       if (pressure > 0) {
         results.pressureDrop = calculatePressureDrop(power, flow, pressure, isMetric);
@@ -50,7 +50,7 @@ export const SPFCalculator: React.FC = () => {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center space-x-2">
           <Calculator className="h-6 w-6 text-blue-600" />
-          <h2 className="text-xl font-semibold text-gray-900">SPF Calculator</h2>
+          <h2 className="text-xl font-semibold text-gray-900">SFP Calculator</h2>
         </div>
         <div className="flex items-center space-x-4">
           {results && (
