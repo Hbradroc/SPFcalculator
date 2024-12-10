@@ -1,85 +1,78 @@
-export interface PressureDropResult {
-  totalPressure: number;
+export interface FilterState {
+  pressureDrop: number;
   efficiency: number;
 }
 
-export interface CalculationResults {
-  spf: number;
-  spfImperial: number;
-  pressureDrop: PressureDropResult | null;
-  efficiency: number | null;
-  flow: {
-    metric: number;
-    imperial: number;
-  };
-  power: {
-    metric: number;
-    imperial: number;
+export interface FanData {
+  power: number; // kW
+  airflow: number; // m³/s
+  pressureDrop: number; // Pa
+}
+
+export interface FanCalculationResult {
+  sfp: number;
+  efficiency: number;
+  rating: 'Excellent' | 'Good' | 'Fair' | 'Poor';
+  totalPower: number;
+  validationDetails?: {
+    isValid: boolean;
+    notes: string[];
+    designAirflow: number;
   };
 }
 
-// Conversion constants
-const CFM_TO_M3S = 0.000471947443;  // 1 CFM = 0.000471947443 m³/s
-const HP_TO_KW = 0.745699872;       // 1 HP = 0.745699872 kW
-const PA_TO_IN_WG = 0.004014631;    // 1 Pa = 0.004014631 in.w.g
-
-export const convertToMetric = {
-  flow: (cfm: number): number => cfm * CFM_TO_M3S,
-  power: (hp: number): number => hp * HP_TO_KW,
-  pressure: (inWg: number): number => inWg / PA_TO_IN_WG
+export const FILTER_STATES = {
+  clean: {
+    pressureDropFactor: 1,
+    efficiencyFactor: 1
+  },
+  dirty: {
+    pressureDropFactor: 2, // Eurovent assumes double pressure drop for dirty filters
+    efficiencyFactor: 0.9 // 10% reduction in efficiency for dirty filters
+  }
 };
 
-export const convertToImperial = {
-  flow: (m3s: number): number => m3s / CFM_TO_M3S,
-  power: (kw: number): number => kw / HP_TO_KW,
-  pressure: (pa: number): number => pa * PA_TO_IN_WG
+const DEFAULT_VALIDATION_CONDITIONS = {
+  designLoad: 100,
+  filterPressure: 0
 };
 
-export const calculateSPF = (power: number, flow: number, isMetric: boolean): CalculationResults => {
-  // Convert to metric if imperial values provided
-  const powerMetric = isMetric ? power : convertToMetric.power(power);
-  const flowMetric = isMetric ? flow : convertToMetric.flow(flow);
+export const calculateSystemSFP = (
+  supplyFan: FanData,
+  extractFan: FanData | undefined,
+  filterState: 'clean' | 'dirty' = 'clean'
+): FanCalculationResult => {
+  const { pressureDropFactor, efficiencyFactor } = FILTER_STATES[filterState];
   
-  // Calculate SPF in both units
-  const spfMetric = parseFloat((powerMetric / flowMetric).toFixed(2));
-  const spfImperial = parseFloat((power / flow).toFixed(2));
+  // Calculate total power and maximum airflow
+  const totalPower = supplyFan.power + (extractFan?.power || 0);
+  const maxAirflow = Math.max(supplyFan.airflow, extractFan?.airflow || 0);
+  
+  // Calculate SFP (W/(m³/s)) for the entire system
+  const sfp = (totalPower * 1000) / maxAirflow;
+  
+  // Calculate system efficiency considering both fans if present
+  const supplyTheoretical = supplyFan.pressureDrop * pressureDropFactor * supplyFan.airflow;
+  const extractTheoretical = extractFan 
+    ? extractFan.pressureDrop * pressureDropFactor * extractFan.airflow 
+    : 0;
+  
+  const totalTheoretical = supplyTheoretical + extractTheoretical;
+  const totalActual = totalPower * 1000; // Convert kW to W
+  
+  const efficiency = (totalTheoretical / totalActual) * 100 * efficiencyFactor;
+
+  // Determine rating based on SFP
+  let rating: FanCalculationResult['rating'];
+  if (sfp < 1000) rating = 'Excellent';
+  else if (sfp < 2000) rating = 'Good';
+  else if (sfp < 2500) rating = 'Fair';
+  else rating = 'Poor';
 
   return {
-    spf: spfMetric,
-    spfImperial,
-    pressureDrop: null,
-    efficiency: null,
-    flow: {
-      metric: flowMetric,
-      imperial: isMetric ? convertToImperial.flow(flow) : flow
-    },
-    power: {
-      metric: powerMetric,
-      imperial: isMetric ? convertToImperial.power(power) : power
-    }
-  };
-};
-
-export const calculatePressureDrop = (
-  power: number,
-  flow: number,
-  pressureDrop: number,
-  isMetric: boolean
-): PressureDropResult => {
-  // Convert to metric if imperial values provided
-  const powerMetric = isMetric ? power : convertToMetric.power(power);
-  const flowMetric = isMetric ? flow : convertToMetric.flow(flow);
-  const pressureMetric = isMetric ? pressureDrop : convertToMetric.pressure(pressureDrop);
-  
-  // Convert kW to W for calculation
-  const powerInWatts = powerMetric * 1000;
-  
-  // Calculate efficiency
-  const theoreticalPower = (flowMetric * pressureMetric);
-  const efficiency = theoreticalPower / powerInWatts;
-
-  return {
-    totalPressure: pressureMetric,
-    efficiency
+    sfp: Number(sfp.toFixed(2)),
+    efficiency: Number(efficiency.toFixed(1)),
+    rating,
+    totalPower
   };
 };
