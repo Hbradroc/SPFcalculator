@@ -8,7 +8,8 @@ export default defineConfig({
   },
   build: {
     commonjsOptions: {
-      include: [/@react-pdf\/renderer/]
+      include: [/@react-pdf\/renderer/],
+      transformMixedEsModules: true
     }
   }
 });
