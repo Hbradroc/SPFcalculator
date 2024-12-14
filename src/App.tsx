@@ -1,49 +1,97 @@
 import React, { useState } from 'react';
-import { Calculator, Info, Fan } from 'lucide-react';
-import { SPFCalculator } from './components/SPFCalculator';
-import { InfoPanel } from './components/InfoPanel';
+import { Header } from './components/Header';
+import { Calculator } from './components/Calculator';
+import { Guide } from './components/Guide';
+import { Footer } from './components/Footer';
+import { generatePDF } from './utils/pdfGenerator';
+import { convertUnits, UnitSystem } from './utils/units';
+import { calculateSystemSFP, FanData } from './utils/calculations';
+
+interface FanInputs {
+  power: string;
+  airflow: string;
+  pressureDrop: string;
+}
 
 function App() {
-  const [showInfo, setShowInfo] = useState(false);
+  const [supplyFan, setSupplyFan] = useState<FanInputs>({
+    power: '',
+    airflow: '',
+    pressureDrop: ''
+  });
+  const [extractFan, setExtractFan] = useState<FanInputs>({
+    power: '',
+    airflow: '',
+    pressureDrop: ''
+  });
+  const [resultClean, setResultClean] = useState<ReturnType<typeof calculateSystemSFP> | null>(null);
+  const [resultDirty, setResultDirty] = useState<ReturnType<typeof calculateSystemSFP> | null>(null);
+  const [unitSystem, setUnitSystem] = useState<UnitSystem>('metric');
+
+  const convertFanData = (fan: FanInputs, system: UnitSystem): FanData | null => {
+    const power = parseFloat(fan.power);
+    const airflow = parseFloat(fan.airflow);
+    const pressureDrop = parseFloat(fan.pressureDrop);
+
+    if (isNaN(power) || isNaN(airflow) || isNaN(pressureDrop)) {
+      return null;
+    }
+
+    if (system === 'imperial') {
+      return {
+        power: convertUnits.power.hp_to_kw(power),
+        airflow: convertUnits.airflow.cfm_to_m3s(airflow),
+        pressureDrop: convertUnits.pressure.inwg_to_pa(pressureDrop)
+      };
+    }
+
+    return { power, airflow, pressureDrop };
+  };
+
+  const calculateSFP = () => {
+    const supplyData = convertFanData(supplyFan, unitSystem);
+    const extractData = convertFanData(extractFan, unitSystem);
+    
+    if (supplyData) {
+      const clean = calculateSystemSFP(supplyData, extractData, 'clean');
+      const dirty = calculateSystemSFP(supplyData, extractData, 'dirty');
+      
+      setResultClean(clean);
+      setResultDirty(dirty);
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-gray-100">
-      <nav className="bg-white shadow-md">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Fan className="h-8 w-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-900">SPF Calculator</h1>
-            </div>
-            <button
-              onClick={() => setShowInfo(!showInfo)}
-              className="flex items-center space-x-1 text-gray-600 hover:text-blue-600 transition-colors"
-            >
-              <Info className="h-5 w-5" />
-              <span>Guide</span>
-            </button>
-          </div>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50">
+      <div className="container mx-auto px-4 py-8">
+        <Header />
+        <div className="grid lg:grid-cols-2 gap-8 mt-8">
+          <Calculator
+            supplyFan={supplyFan}
+            extractFan={extractFan}
+            resultClean={resultClean}
+            resultDirty={resultDirty}
+            setSupplyFan={setSupplyFan}
+            setExtractFan={setExtractFan}
+            calculateSFP={calculateSFP}
+            unitSystem={unitSystem}
+            setUnitSystem={setUnitSystem}
+            onGenerateReport={() => {
+              if (resultClean && resultDirty) {
+                generatePDF({
+                  supplyFan,
+                  extractFan,
+                  clean: resultClean,
+                  dirty: resultDirty,
+                  unitSystem
+                });
+              }
+            }}
+          />
+          <Guide />
         </div>
-      </nav>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid md:grid-cols-2 gap-8">
-          <div className="order-2 md:order-1">
-            <SPFCalculator />
-          </div>
-          <div className={`order-1 md:order-2 ${showInfo ? 'block' : 'hidden md:block'}`}>
-            <InfoPanel />
-          </div>
-        </div>
-      </main>
-
-      <footer className="bg-white mt-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-          <p className="text-center text-gray-600">
-            © {new Date().getFullYear()} SPF Calculator - hbradroc@uwo.ca
-          </p>
-        </div>
-      </footer>
+        <Footer />
+      </div>
     </div>
   );
 }
